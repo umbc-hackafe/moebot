@@ -1,0 +1,8 @@
+cube = centimeter ** 3 = cubes
+dash = fluid_ounce / 32 = dashes
+splash = fluid_ounce / 12 = splashes
+pony = fluid_ounce = ponys = ponies
+jigger = 1.5 * fluid_ounce = jiggers
+snit = 3 * fluid_ounce = snits
+split = 6 * fluid_ounce = splits
+fifth = gallon / 5 = fifths
