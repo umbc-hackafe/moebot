@@ -2,7 +2,7 @@ from moebot.driver.dmx import DmxDriver
 from moebot.database import CocktailDb
 from moebot.coordinator import Coordinator, MissingIngredients
 from moebot.config import Config
-
+from moebot.drink import Drink, Pour
 
 def prompt_bool(text):
     while True:
@@ -54,31 +54,39 @@ def main():
     ])
     coordinator = Coordinator(config)
 
+    test_drink = Drink("Self Test", Pour(*((ing, 100) for ing in config.slots)))
+
+    local_drinks = [test_drink]
+
     try:
         while True:
             search = input("Enter a drink: ")
 
-            search_res = db.search(search)
+            search_res = db.search(search) \
+                + [drink for drink in local_drinks if search.lower().strip() in drink.name.lower()]
 
             if not search_res:
                 print("ERROR: Drink not found")
                 continue
 
+            target = None
             if len(search_res) == 1:
                 if not prompt_bool(f"Make '{search_res[0].name}'? (y/n): "):
                     continue
+                target = search_res[0]
             else:
                 index = prompt_choice("Which drink? ", [d.name for d in search_res], cancel=True)
 
                 if index is not None:
-                    try:
-                        target = search_res[index]
-                        print(f"Making {target}")
-                        coordinator.make_drink(driver, target)
-                    except MissingIngredients as e:
-                        print("ERROR: Missing ingredients: " + ', '.join(e.ingredients))
-                        if prompt_bool("Continue without them? (y/n): "):
-                            coordinator.make_drink(driver, search_res[index], ignore_missing=True)
+                    target = search_res[index]
+
+            try:
+                print(f"Making {target}")
+                coordinator.make_drink(driver, target)
+            except MissingIngredients as e:
+                print("ERROR: Missing ingredients: " + ', '.join(e.ingredients))
+                if prompt_bool("Continue without them? (y/n): "):
+                    coordinator.make_drink(driver, target, ignore_missing=True)
 
     except KeyboardInterrupt:
         pass
