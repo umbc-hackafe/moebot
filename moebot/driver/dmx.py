@@ -7,7 +7,7 @@ import dmx
 DMX_SIZE = 512
 
 FLOW_RATE = .1
-SEC_PER_ML = .001
+SEC_PER_ML = .01
 
 
 class DmxDriver(Driver):
