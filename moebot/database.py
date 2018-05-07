@@ -131,8 +131,8 @@ class CocktailDb:
                     print(f"WARN: Unknown unit in quantity '{amt}' of '{ingredient}'")
                     continue
 
-
-                if isinstance(n_amt, (int, float)) or n_amt.dimensionless:
+                if isinstance(n_amt, (int, float)) \
+                    or n_amt.dimensionality != ureg.liter.dimensionality:
                     # Don't know what do do about things that are dimensionless
                     continue
 
