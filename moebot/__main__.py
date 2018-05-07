@@ -40,7 +40,7 @@ def prompt_choice(text, choices, cancel=False):
 
 
 def main():
-    driver = DmxDriver(port='/dev/ttyUSB0')
+    driver = DmxDriver(port='/dev/ttyUSB0', offset=13)
     db = CocktailDb()
     config = Config([
         "vodka",

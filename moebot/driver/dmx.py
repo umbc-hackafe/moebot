@@ -11,7 +11,7 @@ SEC_PER_ML = .01
 
 
 class DmxDriver(Driver):
-    def __init__(self, *args, port=None, **kwargs):
+    def __init__(self, *args, port=None, offset=1, **kwargs):
         super().__init__()
 
         if port:
@@ -21,6 +21,8 @@ class DmxDriver(Driver):
 
         self.channels = bytearray(DMX_SIZE)
         self.send()
+
+        self.offset = offset
 
         self.dmx.start()
 
@@ -39,10 +41,10 @@ class DmxDriver(Driver):
         self.dmx.stop()
 
     def dispense(self, index, amount):
-        self.set_channel(1 + index, int(255 * FLOW_RATE))
+        self.set_channel(index + self.offset, int(255 * FLOW_RATE))
         self.send()
 
         time.sleep(amount * SEC_PER_ML / FLOW_RATE)
 
-        self.set_channel(1 + index, 0)
+        self.set_channel(index + self.offset, 0)
         self.send()
