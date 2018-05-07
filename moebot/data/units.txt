@@ -6,3 +6,6 @@ jigger = 1.5 * fluid_ounce = jiggers
 snit = 3 * fluid_ounce = snits
 split = 6 * fluid_ounce = splits
 fifth = gallon / 5 = fifths
+wedge = 1
+part = 1 * shot
+drop = .1 * mL

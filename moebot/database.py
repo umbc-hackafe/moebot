@@ -3,8 +3,9 @@ import requests
 import pint
 import json
 import os
+import re
 
-import drink
+from moebot.drink import Drink, Pour, Ice, Wedge, Garnish
 
 
 UNIT_FILE = pkg_resources.resource_filename('moebot', 'data/units.txt')
@@ -12,6 +13,12 @@ ureg = pint.UnitRegistry()
 ureg.load_definitions(UNIT_FILE)
 
 Q = ureg.Quantity
+
+
+# @context bartending = bar
+#    [mass] -> [volume]: value * (fluid_ounce / ounce)
+# @end
+
 
 # Search cocktail by name
 # https://www.thecocktaildb.com/api/json/v1/1/search.php?s=margarita
@@ -47,8 +54,47 @@ BASE = "https://www.thecocktaildb.com/api/json/v1/1"
 
 URL_SEARCH = BASE + "/search.php"
 URL_LOOKUP = BASE + "/lookup.php"
-URL_FILTER = BASE + "filter.php"
+URL_FILTER = BASE + "/filter.php"
 URL_LIST = BASE + "/list.php"
+
+
+blind_repl = {
+    "fl oz": "floz",
+    "fluid oz": "floz",
+    "fluid ounce": "floz",
+    "fl ounce": "floz",
+}
+
+mixed_number_re = re.compile(r'([0-9.]+)(\s+([0-9 /]+))?([A-Za-z ]+)')
+oz_re = re.compile(r'\b(oz|ounce)')
+
+
+def cleanup_amt(amt):
+    unit_matches = re.findall(mixed_number_re, amt)
+
+    if unit_matches:
+        match = unit_matches[0]
+        whole, _, frac, unit = match
+
+        whole = float(whole.strip())
+        frac = frac.strip()
+        unit = unit.strip()
+
+        if frac:
+            num_str, denom_str = frac.split('/')
+            num, denom = int(num_str), int(denom_str)
+
+            amt = f"{whole+num/denom} {unit}"
+        else:
+            amt = f"{whole} {unit}"
+
+    for search, repl in blind_repl.items():
+        if search in amt:
+            amt = amt.replace(search, repl)
+
+    amt = re.sub(oz_re, 'floz', amt)
+
+    return amt
 
 
 class CocktailDb:
@@ -56,51 +102,71 @@ class CocktailDb:
         id = data.get("idDrink")
         name = data.get("strDrink")
 
-        # Place sugar cube in old fashioned glass and saturate with bitters, add a dash of plain water. Muddle until dissolved.
-        # Fill the glass with ice cubes and add whiskey.
-        #
-        # Garnish with orange twist, and a cocktail cherry.
-
         extras = []
         for line in data["strInstructions"].lower().split("\r\n"):
             if not line:
                 continue
 
             if "ice" in line:
-                extras.append(drink.Ice())
+                extras.append(Ice())
 
             if "orange" in line:
-                extras.append(drink.Wedge("orange"))
+                extras.append(Wedge("orange"))
 
             if "garnish" in line and "cherry" in line:
-                extras.append(drink.Garnish("cherry"))
+                extras.append(Garnish("cherry"))
 
             # TODO And more...
 
         pours = []
         for i in range(1, 16):
-            ingredient = data.get(f"strIngredient{i}")
-            amt = data.get(f"strMeasure{i}")
+            ingredient = (data.get(f"strIngredient{i}") or "").strip().lower()
+            amt = (data.get(f"strMeasure{i}") or "").strip().lower()
 
             if ingredient and amt:
-                pours.append((ingredient, ureg(amt).to('mL')))
+                amt = cleanup_amt(amt)
+                try:
+                    n_amt = ureg(amt)
+                except pint.UndefinedUnitError:
+                    print(f"WARN: Unknown unit in quantity '{amt}' of '{ingredient}'")
+                    continue
 
-        return drink.Drink(name, drink.Pour(*pours), *extras)
+
+                if isinstance(n_amt, (int, float)) or n_amt.dimensionless:
+                    # Don't know what do do about things that are dimensionless
+                    continue
+
+                n_amt = n_amt.to('mL').magnitude
+                pours.append((ingredient, n_amt))
+
+        return Drink(name, Pour(*pours), *extras)
 
     def search(self, name):
         res = requests.get(URL_SEARCH, params={DRINK: name})
+        #res = requests.get(URL_FILTER, params={'a': 'Alcoholic'})
         data = res.json()
-        print(json.dumps(data))
 
-        return [self.convert_drink(d) for d in data['drinks']]
+        return [self.convert_drink(d) for d in data.get('drinks') or ()]
+
+    def all_drinks(self):
+        res = requests.get(URL_LIST, params={'c': 'list'})
+        data = res.json()
+        categories = [v["strCategory"] for v in data["drinks"]]
+
+        ids = set()
+
+        for cat in categories:
+            res = requests.get(URL_FILTER, params={'c': cat})
+            data = res.json()
+
+            for drink in data['drinks']:
+                ids.add(int(drink['idDrink']))
+
+            print(f"Found {len(ids)} drinks")
 
     def substitutes(self, ingredient):
         pass
 
 if __name__ == "__main__":
     db = CocktailDb()
-
-    res = db.search("old fashioned")
-
-    for d in res:
-        print(str(d))
+    db.all_drinks()
