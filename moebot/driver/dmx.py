@@ -6,7 +6,7 @@ import dmx
 
 DMX_SIZE = 512
 
-FLOW_RATE = .1
+FLOW_RATE = .5
 SEC_PER_ML = .01
 
 
