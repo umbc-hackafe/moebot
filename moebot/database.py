@@ -143,7 +143,6 @@ class CocktailDb:
 
     def search(self, name):
         res = requests.get(URL_SEARCH, params={DRINK: name})
-        #res = requests.get(URL_FILTER, params={'a': 'Alcoholic'})
         data = res.json()
 
         return [self.convert_drink(d) for d in data.get('drinks') or ()]
