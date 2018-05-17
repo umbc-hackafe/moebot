@@ -2,7 +2,6 @@ from moebot.driver.dmx import DmxDriver
 from moebot.database import CocktailDb, LocalDb, AggregateDb
 from moebot.coordinator import Coordinator, MissingIngredients
 from moebot.config import Config
-from moebot.drink import Drink, Pour
 import yaml
 
 CONF_FILE = "moebot.yml"
