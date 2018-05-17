@@ -10,7 +10,7 @@ setup(
     packages=['moebot'],
     package_dir={'moebot': 'moebot'},
     package_data={'moebot': 'data/*'},
-    version='0.1.0',
+    version='1.0.0',
     description='Bartender Robot',
     long_description="""Bartender Robot
     """,
