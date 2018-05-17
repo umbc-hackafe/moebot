@@ -2,6 +2,19 @@ from moebot.driver import Driver
 import time
 import dmx
 
+RELAY_PIN = 4
+
+try:
+    import gpiozero
+    dmx_relay = gpiozero.OutputDevice(pin=RELAY_PIN, active_high=False, initial_value=False)
+
+    def enable_dmx():
+        dmx_relay.on()
+
+except ImportError:
+    def enable_dmx():
+        print("Simulated enabling DMX")
+
 DMX_SIZE = 512
 
 FLOW_RATE = .5

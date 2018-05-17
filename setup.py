@@ -37,6 +37,7 @@ setup(
         'pint',
         'setuptools',
         'dmx',
+        'gpiozero',
         'pyyaml',
     ],
     dependency_links=[
