@@ -55,6 +55,7 @@ class DmxDriver(Driver):
     def stop(self):
         self.reset()
         self.send()
+        time.sleep(1)
         self.dmx.stop()
 
     def dispense(self, index, amount):
