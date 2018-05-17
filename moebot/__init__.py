@@ -1,1 +1,1 @@
-from . import driver
+from moebot import driver
