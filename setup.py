@@ -36,12 +36,9 @@ setup(
         'requests',
         'pint',
         'setuptools',
-        'dmx',
+        'dmx485',
         'gpiozero',
         'pyyaml',
-    ],
-    dependency_links=[
-        'git+ssh://git@github.com:bitbyt3r/dmx.git#dmx',
     ],
     data_files=[],
     entry_points={
