@@ -1,17 +1,17 @@
 from moebot.driver import Driver
-import threading
 import time
-
 import dmx
 
 DMX_SIZE = 512
 
 FLOW_RATE = .5
-SEC_PER_ML = .01
+
+# Each device in mL/s
+DEFAULT_CAL = [50] * 8
 
 
 class DmxDriver(Driver):
-    def __init__(self, *args, port=None, offset=1, **kwargs):
+    def __init__(self, *args, port=None, offset=1, calibration=DEFAULT_CAL, **kwargs):
         super().__init__()
 
         if port:
@@ -22,9 +22,13 @@ class DmxDriver(Driver):
         self.channels = bytearray(DMX_SIZE)
         self.send()
 
+        self.calibration = calibration
         self.offset = offset
 
         self.dmx.start()
+
+        time.sleep(1)
+        enable_dmx()
 
     def set_channel(self, index, val):
         self.channels[index] = min(255, max(0, val))
@@ -44,7 +48,7 @@ class DmxDriver(Driver):
         self.set_channel(index + self.offset, int(255 * FLOW_RATE))
         self.send()
 
-        time.sleep(amount * SEC_PER_ML / FLOW_RATE)
+        time.sleep(amount / self.calibration[index] / FLOW_RATE)
 
         self.set_channel(index + self.offset, 0)
         self.send()

@@ -1,8 +1,11 @@
 from moebot.driver.dmx import DmxDriver
-from moebot.database import CocktailDb
+from moebot.database import CocktailDb, LocalDb, AggregateDb
 from moebot.coordinator import Coordinator, MissingIngredients
 from moebot.config import Config
 from moebot.drink import Drink, Pour
+import yaml
+
+CONF_FILE = "moebot.yml"
 
 def prompt_bool(text):
     while True:
@@ -38,32 +41,87 @@ def prompt_choice(text, choices, cancel=False):
 
     return res - 1
 
+DEFAULT_CFG = {
+    "driver": {
+        "type": "dmx",
+        "port": "/dev/ttyUSB0",
+        "offset": 1,
+        "calibration": [
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+            50,
+        ],
+    },
+    "databases": [
+        {"type": "local"},
+        {"type": "cocktaildb"},
+    ],
+    "config": {
+        "slots": [
+            "kahlua",
+            "vodka",
+            "pineapple rum",
+            "whiskey",
+            "ginger ale",
+            "bloody mary",
+            "wine",
+            "triple sec",
+        ],
+    },
+}
+
 
 def main():
-    driver = DmxDriver(port='/dev/ttyUSB0', offset=13)
-    db = CocktailDb()
-    config = Config([
-        "vodka",
-        "whiskey",
-        "aromatic bitters",
-        "bourbon",
-        "gin",
-        "triple sec",
-        "grenadine",
-        "vermouth",
-    ])
+    conf_data = DEFAULT_CFG
+
+    try:
+        with open(CONF_FILE) as f:
+            conf_data = yaml.load(f)
+    except (IOError, OSError):
+        pass
+
+    config = Config(slots=conf_data.get("config", {}).get("slots", []))
+
+    driver = None
+    driver_opts = conf_data.get("driver", {})
+    driver_type = driver_opts.pop("type", None)
+
+    if driver_type == "dmx":
+        driver = DmxDriver(**driver_opts)
+    else:
+        print(f"Invalid driver type '{driver_type}'")
+        exit(1)
+
+    db = None
+
+    inner_dbs = []
+    for db_opts in conf_data.get("databases", []):
+        db_type = db_opts.pop("type", None)
+        if db_type == "cocktaildb":
+            inner_dbs.append(CocktailDb())
+        elif db_type == "local":
+            inner_dbs.append(LocalDb(config))
+        else:
+            print(f"Invalid database type '{db_type}'")
+            exit(1)
+
+    if len(inner_dbs) == 1:
+        db = inner_dbs[0]
+    else:
+        db = AggregateDb(*inner_dbs)
+
     coordinator = Coordinator(config)
-
-    test_drink = Drink("Self Test", Pour(*((ing, 100) for ing in config.slots)))
-
-    local_drinks = [test_drink]
 
     try:
         while True:
             search = input("Enter a drink: ")
 
-            search_res = db.search(search) \
-                + [drink for drink in local_drinks if search.lower().strip() in drink.name.lower()]
+            search_res = db.search(search)
 
             if not search_res:
                 print("ERROR: Drink not found")

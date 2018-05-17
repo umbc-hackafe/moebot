@@ -37,6 +37,7 @@ setup(
         'pint',
         'setuptools',
         'dmx',
+        'pyyaml',
     ],
     dependency_links=[
         'git+ssh://git@github.com:dylwhich/dmx.git#dmx',

@@ -1,0 +1,28 @@
+driver:
+  type: dmx
+  port: /dev/ttyUSB0
+  offset: 13
+  calibration:
+    - 50
+    - 50
+    - 50
+    - 50
+    - 50
+    - 50
+    - 25
+    - 50
+
+databases:
+  - type: local
+  - type: cocktaildb
+
+config:
+  slots:
+    - kahlua
+    - vodka
+    - pineapple rum
+    - whiskey
+    - ginger ale
+    - bloody mary
+    - wine
+    - triple sec

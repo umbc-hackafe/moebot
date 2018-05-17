@@ -164,7 +164,29 @@ class CocktailDb:
             print(f"Found {len(ids)} drinks")
 
     def substitutes(self, ingredient):
-        pass
+        return []
+
+
+class LocalDb:
+    def __init__(self, config):
+        self.drinks = [
+            Drink("Self Test", Pour(*((ing, 30) for ing in config.slots)))
+        ]
+        self.config = config
+
+    def search(self, name):
+        return [drink for drink in self.drinks if name.lower().strip() in drink.name.lower()]
+
+
+class AggregateDb:
+    def __init__(self, *dbs):
+        self.dbs = dbs
+
+    def search(self, name):
+        return sum((db.search(name) for db in self.dbs), [])
+
+    def substitutes(self, ingredient):
+        return sum((db.substitutes(ingredient) for db in self.dbs), [])
 
 if __name__ == "__main__":
     db = CocktailDb()

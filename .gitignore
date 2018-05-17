@@ -250,3 +250,5 @@ tags
 Pipfile
 Pipfile.lock
 .idea
+
+moebot.yml
