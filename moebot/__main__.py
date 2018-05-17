@@ -145,8 +145,8 @@ def main():
                 if prompt_bool("Continue without them? (y/n): "):
                     coordinator.make_drink(driver, target, ignore_missing=True)
 
-    except KeyboardInterrupt:
-        pass
+    except (KeyboardInterrupt, EOFError):
+        driver.stop()
 
 if __name__ == "__main__":
     main()
