@@ -41,7 +41,7 @@ setup(
         'pyyaml',
     ],
     dependency_links=[
-        'git+ssh://git@github.com:dylwhich/dmx.git#dmx',
+        'git+ssh://git@github.com:bitbyt3r/dmx.git#dmx',
     ],
     data_files=[],
     entry_points={
