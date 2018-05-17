@@ -1,10 +1,6 @@
 from setuptools import setup
 
 
-def read_license():
-    with open("LICENSE") as f:
-        return f.read()
-
 setup(
     name='moebot',
     packages=['moebot'],
@@ -14,7 +10,7 @@ setup(
     description='Bartender Robot',
     long_description="""Bartender Robot
     """,
-    license=read_license(),
+    license="MIT",
     author='Dylan Whichard',
     author_email='dylan@whichard.com',
     url='https://github.com/umbc-hackafe/moebot',
