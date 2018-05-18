@@ -1,4 +1,5 @@
 import pkg_resources
+import functools
 import requests
 import pint
 import json
@@ -141,6 +142,7 @@ class CocktailDb:
 
         return Drink(name, Pour(*pours), *extras)
 
+    @functools.lru_cache(100)
     def search(self, name):
         res = requests.get(URL_SEARCH, params={DRINK: name})
         data = res.json()
