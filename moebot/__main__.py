@@ -199,7 +199,7 @@ def web(db, coordinator, driver, port):
         </html>
         """
 
-    app.run('0.0.0.0', port, True)
+    app.run('0.0.0.0', port)
 
 
 def main():
