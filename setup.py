@@ -6,7 +6,7 @@ setup(
     packages=['moebot'],
     package_dir={'moebot': 'moebot'},
     package_data={'moebot': 'data/*'},
-    version='1.1.0',
+    version='1.2.0',
     description='Bartender Robot',
     long_description="""Bartender Robot
     """,
@@ -36,6 +36,8 @@ setup(
         'gpiozero',
         'RPi.GPIO',
         'pyyaml',
+        'flask',
+        'jinja2',
     ],
     data_files=[],
     entry_points={

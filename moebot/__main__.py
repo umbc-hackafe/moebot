@@ -2,6 +2,7 @@ from moebot.driver.dmx import DmxDriver
 from moebot.database import CocktailDb, LocalDb, AggregateDb
 from moebot.coordinator import Coordinator, MissingIngredients
 from moebot.config import Config
+import jinja2
 import yaml
 
 CONF_FILE = "moebot.yml"
@@ -75,6 +76,132 @@ DEFAULT_CFG = {
 }
 
 
+def cli(db, coordinator, driver):
+    try:
+        while True:
+            search = input("Enter a drink: ")
+
+            search_res = db.search(search)
+
+            if not search_res:
+                print("ERROR: Drink not found")
+                continue
+
+            target = None
+            if len(search_res) == 1:
+                if not prompt_bool(f"Make '{search_res[0].name}'? (y/n): "):
+                    continue
+                target = search_res[0]
+            else:
+                index = prompt_choice("Which drink? ", [d.name for d in search_res], cancel=True)
+
+                if index is not None:
+                    target = search_res[index]
+
+            try:
+                print(f"Making {target}")
+                coordinator.make_drink(driver, target)
+            except MissingIngredients as e:
+                print("ERROR: Missing ingredients: " + ', '.join(e.ingredients))
+                if prompt_bool("Continue without them? (y/n): "):
+                    coordinator.make_drink(driver, target, ignore_missing=True)
+
+    except (KeyboardInterrupt, EOFError):
+        driver.stop()
+
+
+def web(db, coordinator, driver, port):
+    import flask
+
+    app = flask.Flask(__name__)
+
+    @app.route('/')
+    def index():
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Moebot</title></head>
+        <body>
+        <form method="get" action="/search">
+        <div>
+        <input type="text" placeholder="Search drinks..." name="drink"/>
+        <input type="submit" value="Submit"/>
+        </div>
+        </form>
+        </body>
+        </html>
+"""
+
+    @app.route('/search')
+    def results():
+        query = flask.request.args.get('drink')
+        drinks = db.search(query)
+
+        template = jinja2.Template("""
+        <!DOCTYPE html>
+        <html>
+        <head><title>Search Results</title></head>
+        <body>
+        <form method="get" action="/search">
+        <div>
+        <input type="text" placeholder="Search drinks..." name="drink"/>
+        <input type="submit" value="Submit"/>
+        </div>
+        </form>
+        {% if drinks %}
+        <table>
+        {% for drink in drinks %}
+        <form method="post" action="/make">
+        <tr>
+        <td>{{ drink.name }}</td>
+        <td><input type="hidden" name="drink" value="{{ drink.name }}"/><input type="submit" value="Make"/></td>
+        </tr>
+        </form>
+        {% endfor %}
+        </table>
+        {% else %}
+        No results found :(
+        {% endif %}
+        </body>
+        </html>
+        """)
+
+        return template.render(drinks=drinks)
+
+    @app.route('/make', methods=['POST'])
+    def make():
+        name = flask.request.form.get('drink')
+
+        drink = None
+        for d in db.search(name):
+            if d.name == name:
+                drink = d
+                break
+
+        if not drink:
+            return "oh no"
+
+        coordinator.make_drink(driver, drink, True)
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head><title>Made Drink!</title></head>
+        <body>
+        <form method="get" action="/search">
+        <div>
+        <input type="text" placeholder="Search drinks..." name="drink"/>
+        <input type="submit" value="Submit"/>
+        </div>
+        </form>
+        I made your drink?
+        </body>
+        </html>
+        """
+
+    app.run('0.0.0.0', port, True)
+
+
 def main():
     conf_data = DEFAULT_CFG
 
@@ -116,37 +243,13 @@ def main():
 
     coordinator = Coordinator(config)
 
-    try:
-        while True:
-            search = input("Enter a drink: ")
+    interface = conf_data.get("interface", "cli")
 
-            search_res = db.search(search)
+    if interface == "cli":
+        cli(db, coordinator, driver)
+    elif interface == "web":
+        web(db, coordinator, driver, port=conf_data.get('web', {}).get('port', 8080))
 
-            if not search_res:
-                print("ERROR: Drink not found")
-                continue
-
-            target = None
-            if len(search_res) == 1:
-                if not prompt_bool(f"Make '{search_res[0].name}'? (y/n): "):
-                    continue
-                target = search_res[0]
-            else:
-                index = prompt_choice("Which drink? ", [d.name for d in search_res], cancel=True)
-
-                if index is not None:
-                    target = search_res[index]
-
-            try:
-                print(f"Making {target}")
-                coordinator.make_drink(driver, target)
-            except MissingIngredients as e:
-                print("ERROR: Missing ingredients: " + ', '.join(e.ingredients))
-                if prompt_bool("Continue without them? (y/n): "):
-                    coordinator.make_drink(driver, target, ignore_missing=True)
-
-    except (KeyboardInterrupt, EOFError):
-        driver.stop()
 
 if __name__ == "__main__":
     main()
